@@ -24,6 +24,7 @@ from imblearn.under_sampling import EditedNearestNeighbours
 from imblearn.under_sampling import RepeatedEditedNearestNeighbours
 from imblearn.under_sampling import NeighbourhoodCleaningRule
 from imblearn.under_sampling import OneSidedSelection
+from imblearn.pipeline import Pipeline
 
 
 
@@ -117,12 +118,18 @@ pyplot.show()
 results = list()
 models,names = get_under_sample_models()
 for i in range(len(models)):
-    model = LogisticRegression(solver = 'liblinear', class_weight='balanced')
-    ct = ColumnTransformer([('c', OneHotEncoder(), cat_ix), ('n', MinMaxScaler(), num_ix)])
-    pipeline = Pipeline(steps = [('t', ct),('s',models[i]),('m',model)])
-    scores = evaluate_model(X,y,pipeline)
+# define model to evaluate
+    model = LogisticRegression(solver='liblinear', class_weight='balanced')
+# one hot encode categorical, normalize numerical
+    ct = ColumnTransformer([('c',OneHotEncoder(),cat_ix), ('n',MinMaxScaler(),num_ix)])
+# scale, then undersample, then fit model
+    pipeline = Pipeline(steps=[('t',ct), ('s', models[i]), ('m',model)])
+# evaluate the model and store results
+    scores = evaluate_model(X, y, pipeline)
     results.append(scores)
-    print('>%s %.3f (%.3f)' %(names[i],mean(scores),std(scores)))
+# summarize and store
+    print('>%s %.3f (%.3f)' % (names[i], mean(scores), std(scores)))
+
 pyplot.boxplot(results, labels = names, showmeans=True)
 pyplot.show()
 
