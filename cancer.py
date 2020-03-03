@@ -2,6 +2,8 @@ from pandas import read_csv
 from collections import Counter
 from matplotlib import pyplot
 from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import PowerTransformer
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.dummy import DummyClassifier
@@ -28,13 +30,26 @@ def get_models():
     models.append(SVC(gamma='scale'))
     names.append('SVM')
 # Bagging
-    models.append(BaggingClassifier(n_estimators=1000))
-    names.append('BAG')
+ #   models.append(BaggingClassifier(n_estimators=1000))
+  #  names.append('BAG')
     models.append(RandomForestClassifier(n_estimators=1000))
     names.append('RF')
     # GBM
     models.append(GradientBoostingClassifier(n_estimators=1000))
     names.append('GBM')
+    return models, names
+
+def get_cost_Sensitive_models():
+    models, names = list(), list()
+# LR
+    models.append(LogisticRegression(solver='lbfgs', class_weight='balanced'))
+    names.append('LR')
+# SVM
+    models.append(SVC(gamma='scale', class_weight='balanced'))
+    names.append('SVM')
+# RF
+    models.append(RandomForestClassifier(n_estimators=1000))
+    names.append('RF')
     return models, names
 
 filename = 'mammography.csv'
@@ -60,13 +75,16 @@ y = LabelEncoder().fit_transform(y)
 print(X.shape, y.shape,Counter(y))
 model = DummyClassifier(strategy = 'stratified')
 scores = evaluate_model(X,y,model)
-print('Mean ROC AUC: %.3f (%.3f)' %(mean(scores), std(scores)))
-models,names = get_models()
+print('Dummy classifier Mean ROC AUC: %.3f (%.3f)' %(mean(scores), std(scores)))
+models,names = get_cost_Sensitive_models()
 results = list()
 for i in range(len(models)):
-    scores = evaluate_model(X,y,models[i])
+    steps = [('p', PowerTransformer()), ('m', models[i])]
+    # define pipeline
+    pipeline = Pipeline(steps=steps)
+    scores = evaluate_model(X,y,pipeline)
     results.append(scores)
     print('>%s %.3f (%.3f)' % (names[i], mean(scores), std(scores)))
 
-pyplot.boxplot(results, label = names, showmeans=True)
+pyplot.boxplot(results, labels= names, showmeans=True)
 pyplot.show()
